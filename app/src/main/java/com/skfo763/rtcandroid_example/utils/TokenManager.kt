@@ -9,7 +9,7 @@ class TokenManager {
 
         @JvmStatic
         fun getToken(isMan: Boolean) : String {
-            return if(isMan) BuildConfig.TOKEN_MAN else BuildConfig.TOKEN_WOMAN
+            return "man"
         }
     }
 }

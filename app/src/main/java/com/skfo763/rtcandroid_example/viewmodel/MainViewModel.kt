@@ -90,6 +90,7 @@ class MainViewModel(val rtcModule: VideoChatRtcManager, val useCase: MainActivit
             RtcUiEvent.RETRY -> {
                 useCase.showTopBanner(R.string.voice_chat_disconnect_from_server, R.color.pink_ff5a78)
             }
+            else -> {}
         }
     }
 
@@ -108,7 +109,7 @@ class MainViewModel(val rtcModule: VideoChatRtcManager, val useCase: MainActivit
         private val context: Context,
         private val useCase: MainActivityUseCase
     ) : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return MainViewModel(VideoChatRtcManager.createFaceChatRtcManager(context), useCase) as T
         }
     }

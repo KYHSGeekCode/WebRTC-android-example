@@ -97,6 +97,7 @@ class CallingFragment : BaseFragment(), AudioStatusInterface {
             AudioListener.AudioConnect.EARPIECE_NO_WIRE_DISCONNECTED -> {
                 showToast(getString(R.string.earpiece_disconnected))
             }
+            else -> {}
         }
     }
 

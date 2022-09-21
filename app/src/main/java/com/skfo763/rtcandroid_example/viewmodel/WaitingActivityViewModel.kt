@@ -31,7 +31,7 @@ class WaitingActivityViewModel(val useCase: WaitingActivityUseCase) : ViewModel(
     }
 
     class Factory(private val useCase: WaitingActivityUseCase) : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return WaitingActivityViewModel(useCase) as T
         }
     }
