@@ -33,7 +33,7 @@ class VideoChatRtcManager private constructor(
     private var otherUserIdx: Int? = null
     private val gson = Gson()
 
-    private val socketManager = RTCSocketManager(this)
+    private val socketManager = PureRTCSocketManager(this)
     private val peerManager = VideoPeerManager(context, this)
     private val audioManager: MAudioManager = MAudioManagerImpl(context)
     private val retryErrorMsg = context.getString(R.string.face_chat_retry_connection_error_msg)
@@ -69,6 +69,7 @@ class VideoChatRtcManager private constructor(
 
     // 시그널링 서버 갈아끼워질때마다 (페이스챗 1 사이클 돌 때마다)
     fun setPeerInfo(peer: SignalServerInfo) {
+        Log.d("VideoChatRtcManager", "setPeerInfo: ${peer.signalServerHost}")
         peerManager.setIceServer(peer)
         peerManager.addStreamToPeerConnection()
         socketManager.createSocket(peer.signalServerHost)

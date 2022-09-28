@@ -77,6 +77,9 @@ open class SocketConnectManager(private val onSocketListener: OnSocketListener) 
             on(Socket.EVENT_RECONNECT, reconnectListener)
             on(Socket.EVENT_RECONNECT_ERROR, reconnectErrorListener)
             on(Socket.EVENT_MESSAGE, messageListener)
+            on(Socket.EVENT_ERROR) {
+                Log.e("SocketConnectManager", "Socket Error $it")
+            }
         }
     }
 

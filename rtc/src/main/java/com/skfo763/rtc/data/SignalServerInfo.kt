@@ -3,7 +3,7 @@ package com.skfo763.rtc.data
 import com.google.gson.annotations.SerializedName
 
 data class SignalServerInfo(
-        @SerializedName("signal_server_host") val signalServerHost : String = "http://54.180.123.99:9500", // 소켓에 넣어줄 호스트 url
+        @SerializedName("signal_server_host") val signalServerHost : String = "http://10.0.2.2:8080", // 소켓에 넣어줄 호스트 url
         @SerializedName("stun_and_turn") val stunAndTurn : List<StunAndTurn> = listOf(StunAndTurn()), // 스턴 앤 턴 서버
         @SerializedName("password") val password : String = "123456"// 인증시 부여되는 번
 )
