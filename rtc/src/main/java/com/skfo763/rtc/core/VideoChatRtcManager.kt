@@ -147,7 +147,7 @@ class VideoChatRtcManager private constructor(
             StopCallType.QUIT_ACTIVITY -> releaseSocket {
                 Log.d("webrtcTAG", "stop at destroy activity")
             }
-            else -> socketManager.sendHangUpEventToSocket(HANGUP, { hangUp(it)} ) { hangUpSuccess(stoppedAt) }
+//            else -> socketManager.sendHangUpEventToSocket(HANGUP, { hangUp(it)} ) { hangUpSuccess(stoppedAt) }
         }
     }
 
@@ -174,6 +174,7 @@ class VideoChatRtcManager private constructor(
     }
 
     override fun onSocketState(state: String, data: Array<Any>, onComplete: (() -> Unit)?) {
+        Log.d("webRTCTAG", "onSocketState $state $data")
         when (state) {
             "connect" -> onSocketConnected(data)
             "message" -> onSocketMessage(data)
@@ -205,6 +206,7 @@ class VideoChatRtcManager private constructor(
     }
 
     private fun onSocketMessage(message: Array<Any>) {
+        Log.d("webrtcTAG", "onSocketMessage = ${message[0]}")
         try {
             val data = JSONObject(message[0].toString())
             when (data["type"]) {

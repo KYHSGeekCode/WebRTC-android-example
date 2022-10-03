@@ -1,15 +1,13 @@
 package com.skfo763.rtc.manager
 
 
+import android.util.Log
 import com.google.gson.Gson
-import com.skfo763.rtc.data.FINISHED
 import okhttp3.Response
 import okhttp3.WebSocket
-import org.json.JSONException
 import org.json.JSONObject
 import org.webrtc.IceCandidate
 import org.webrtc.SessionDescription
-import java.net.SocketException
 import java.util.*
 
 open class PureRTCSocketManager(private val onSocketListener: OnSocketListener) :
@@ -52,24 +50,28 @@ open class PureRTCSocketManager(private val onSocketListener: OnSocketListener) 
     }
 
     fun socketJoin(data: JSONObject, ack: (String) -> Unit) {
-        emit(EMIT_JOIN, data) {
-            try {
-                val ackJson = JSONObject("${it[it.size - 1]}")
-                if (ackJson.getBoolean("success")) {
-                    if (ackJson.getString("status") == FINISHED) {
-                        ack(FINISHED)
-                    }
-                } else {
-                    socketError(ackJson.getString("msg"))
-                }
-            } catch (e: SocketException) {
-                socketError(e.message ?: "socket exception")
-            } catch (e: JSONException) {
-                socketError(e.message ?: "json exception")
-            } catch (e: Exception) {
-                socketError(e.message ?: "exception")
-            }
-        }
+        Log.d("socketJoin", data.toString())
+        emit(EMIT_JOIN, data)
+
+        // FIXME
+//        {
+//            try {
+//                val ackJson = JSONObject("${it[it.size - 1]}")
+//                if (ackJson.getBoolean("success")) {
+//                    if (ackJson.getString("status") == FINISHED) {
+//                        ack(FINISHED)
+//                    }
+//                } else {
+//                    socketError(ackJson.getString("msg"))
+//                }
+//            } catch (e: SocketException) {
+//                socketError(e.message ?: "socket exception")
+//            } catch (e: JSONException) {
+//                socketError(e.message ?: "json exception")
+//            } catch (e: Exception) {
+//                socketError(e.message ?: "exception")
+//            }
+//        }
     }
 
     fun sendOfferAnswerToSocket(sessionDescription: SessionDescription) {
@@ -114,33 +116,33 @@ open class PureRTCSocketManager(private val onSocketListener: OnSocketListener) 
         }
     }
 
-    fun sendHangUpEventToSocket(
-        data: Any,
-        hangUp: (JSONObject) -> Unit,
-        hangUpSuccess: () -> Unit
-    ) {
-        try {
-            val jsonData = gson.toJson(data)
-            if (data == EMIT_HANGUP || jsonData == EMIT_HANGUP) {
-                emit(EMIT_HANGUP, JSONObject().put(EMIT_HANGUP, EMIT_HANGUP)) {
-                    val ackJson = JSONObject("${it[it.size - 1]}")
-                    hangUp(ackJson)
-                    if (ackJson.getBoolean("success")) {
-                        hangUpSuccess()
-                    } else {
-                        socketError(message = "hangup_false")
-                    }
-                }
-            } else {
-                socketError(message = "data should be hang-up : $data")
-            }
-        } catch (e: Exception) {
-            socketError(message = e.message ?: "sendHangUpEventToSocket error")
-        }
-    }
+//    fun sendHangUpEventToSocket(
+//        data: Any,
+//        hangUp: (JSONObject) -> Unit,
+//        hangUpSuccess: () -> Unit
+//    ) {
+//        try {
+//            val jsonData = gson.toJson(data)
+//            if (data == EMIT_HANGUP || jsonData == EMIT_HANGUP) {
+//                emit(EMIT_HANGUP, JSONObject().put(EMIT_HANGUP, EMIT_HANGUP)) {
+//                    val ackJson = JSONObject("${it[it.size - 1]}")
+//                    hangUp(ackJson)
+//                    if (ackJson.getBoolean("success")) {
+//                        hangUpSuccess()
+//                    } else {
+//                        socketError(message = "hangup_false")
+//                    }
+//                }
+//            } else {
+//                socketError(message = "data should be hang-up : $data")
+//            }
+//        } catch (e: Exception) {
+//            socketError(message = e.message ?: "sendHangUpEventToSocket error")
+//        }
+//    }
 
-    fun sendEventToSocket(data: String) {
-        emit(data)
+    fun sendEventToSocket(event: String) {
+        emit(event, "")
     }
 
     fun socketError(message: String) {

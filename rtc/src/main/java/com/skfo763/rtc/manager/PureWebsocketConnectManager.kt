@@ -40,15 +40,15 @@ open class PureWebsocketConnectManager(private val onSocketListener: OnSocketLis
     }
 
 
-    fun createSocket(url: String) {
+    fun createSocket(host: String) {
         if (socket != null) return
         val client = OkHttpClient()
 
         val request: Request = Request.Builder()
-            .url("wss://pubwss.bithumb.com/pub/ws")
+            .url("ws://10.0.2.2:8080/chatt")
             .build()
 
-        client.newWebSocket(request, this)
+        socket = client.newWebSocket(request, this)
         client.dispatcher().executorService().shutdown()
     }
 
@@ -65,12 +65,14 @@ open class PureWebsocketConnectManager(private val onSocketListener: OnSocketLis
 
     override fun onMessage(webSocket: WebSocket, text: String) {
         super.onMessage(webSocket, text)
+        Log.d("socketmgr", "onMessage: $text")
         onSocketListener.onSocketState("message", arrayOf(text))
     }
 
     // reconnect
-    override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response) {
+    override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
         super.onFailure(webSocket, t, response)
+        Log.e("socketmgr", "onFailure: ${t.message}, ${response?.message()}")
         val connectCount = retryConnectionCount.get()
         if (connectCount >= RECONNECTION_ATTEMPTS - 1) {
             onSocketListener.onSocketState("connectError", emptyArray())
@@ -93,10 +95,12 @@ open class PureWebsocketConnectManager(private val onSocketListener: OnSocketLis
     }
 
     fun emit(event: String, data: Any) {
+        Log.d("socketmgr", "emit: $event, $data, socket: $socket")
         socket?.send(
             JSONObject().apply {
+                put("from", "android")
                 put("event", event)
-                put("data", data)
+                put("content", data)
             }.toString()
         )
     }
