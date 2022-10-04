@@ -2,6 +2,7 @@ package com.skfo763.rtc.manager
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import com.skfo763.rtc.data.*
 import com.skfo763.rtc.inobs.AppSdpObserver
 import com.skfo763.rtc.inobs.PeerConnectionObserver
@@ -33,6 +34,7 @@ abstract class PeerManager(context: Context, private val observer: PeerConnectio
     }
 
     private fun buildPeerConnectionFactory(context: Context): PeerConnectionFactory {
+        Log.w("PeerManager", "Build PeerConnectionFactory")
         PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(context)
                 .setEnableInternalTracer(true)
                 .setFieldTrials(FIELD_TRIAL)
@@ -67,7 +69,7 @@ abstract class PeerManager(context: Context, private val observer: PeerConnectio
     }
 
     protected fun buildPeerConnection(): PeerConnection? {
-
+        Log.w("PeerManager", "buildPeerConnection")
         val rtcConfig = PeerConnection.RTCConfiguration(iceServer).apply {
             /* TCP candidates are only useful when connecting to a server that supports. ICE-TCP. */
             tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED
@@ -88,6 +90,7 @@ abstract class PeerManager(context: Context, private val observer: PeerConnectio
     }
 
     fun setIceServer(signalServerInfo: SignalServerInfo) {
+        Log.w("PeerManager", "setIceServer: $signalServerInfo")
         iceServer.clear()
         iceServer.addAll(signalServerInfo.stunAndTurn.map { data ->
             PeerConnection.IceServer.builder(data.urlList)
@@ -99,6 +102,7 @@ abstract class PeerManager(context: Context, private val observer: PeerConnectio
 
     private val sdpObserver = object : AppSdpObserver() {
         override fun onCreateSuccess(p0: SessionDescription?) {
+            Log.w("PeerManager", "onCreateSuccess")
             peerConnection?.setLocalDescription(object : AppSdpObserver() {
                 override fun onSetFailure(p0: String?) {
                     observer.onPeerError(true, showMessage = false, message = p0)
@@ -112,31 +116,37 @@ abstract class PeerManager(context: Context, private val observer: PeerConnectio
     }
 
     fun callOffer() {
+        Log.w("PeerManager", "callOffer, peerConnection: $peerConnection")
         peerConnection?.createOffer(sdpObserver, constraints)
     }
 
     fun callAnswer() {
+        Log.w("PeerManager", "callAnswer, peerConnection: $peerConnection")
         peerConnection?.createAnswer(sdpObserver, constraints)
     }
 
     fun onRemoteSessionReceived(sessionDescription: SessionDescription) {
+        Log.w("PeerManager", "onRemoteSessionReceived, peerConnection: $peerConnection")
         peerConnection?.setRemoteDescription(sdpObserver, sessionDescription)
     }
 
     fun addIceCandidate(iceCandidate: IceCandidate) {
+        Log.w("PeerManager", "addIceCandidate, peerConnection = $peerConnection")
         peerConnection?.addIceCandidate(iceCandidate)
     }
 
     fun closePeer() {
+        Log.w("PeerManager", "closePeer")
         peerConnection?.close()
-
     }
 
     open fun startLocalVoice() {
+        Log.w("PeerManager", "startLocalVoice")
         // for voice peer manager
     }
 
     open fun disconnectPeer() {
+        Log.w("PeerManager", "disconnectPeer")
         peerConnection?.dispose()
         peerConnection = null
         rootEglBase.release()

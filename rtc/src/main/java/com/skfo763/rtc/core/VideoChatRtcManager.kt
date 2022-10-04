@@ -6,10 +6,15 @@ import android.os.Looper
 import android.util.Log
 import com.google.gson.Gson
 import com.skfo763.rtc.R
-import com.skfo763.rtc.contracts.*
+import com.skfo763.rtc.contracts.ErrorHandleData
+import com.skfo763.rtc.contracts.IVideoChatViewModelListener
+import com.skfo763.rtc.contracts.RtcUiEvent
+import com.skfo763.rtc.contracts.StopCallType
 import com.skfo763.rtc.data.*
 import com.skfo763.rtc.inobs.PeerConnectionObserver
-import com.skfo763.rtc.manager.*
+import com.skfo763.rtc.manager.OnSocketListener
+import com.skfo763.rtc.manager.PureRTCSocketManager
+import com.skfo763.rtc.manager.VideoPeerManager
 import com.skfo763.rtc.manager.audio.MAudioManager
 import com.skfo763.rtc.manager.audio.MAudioManagerImpl
 import org.json.JSONObject
@@ -17,7 +22,7 @@ import org.webrtc.*
 import java.util.concurrent.atomic.AtomicBoolean
 
 class VideoChatRtcManager private constructor(
-        context: Context
+    context: Context
 ) : PeerConnectionObserver(), OnSocketListener {
 
     companion object {
@@ -48,28 +53,32 @@ class VideoChatRtcManager private constructor(
 
     // 액티비티 실행 시 최초 1회
     fun initializeVideoTrack() {
+        Log.w("VideoChatRtcManager", "initializeVideoTrack")
         peerManager.addTrackToStream()
     }
 
     // onStart 시점에서 호출
     fun startCameraCapturer() {
+        Log.w("VideoChatRtcManager", "startCameraCapturer")
         peerManager.startCameraCapture()
     }
 
     // 각 프래그먼트 생성 시 최초 1회
     fun initSurfaceView(surfaceView: SurfaceViewRenderer, isRemote: Boolean = false) {
+        Log.w("VideoChatRtcManager", "initSurfaceView")
         surfaceView.setMirror(!isRemote)
         peerManager.initSurfaceView(surfaceView)
     }
 
     // 프래그먼트 트랜지션마다 호출 - 새로 띄워지는 프래그먼트의 서페이스뷰를 넣어준다.
     fun attachVideoTrackToLocalSurface(surfaceView: SurfaceViewRenderer) {
+        Log.w("VideoChatRtcManager", "attachVideoTrackToLocalSurface")
         peerManager.attachLocalTrackToSurface(surfaceView)
     }
 
     // 시그널링 서버 갈아끼워질때마다 (페이스챗 1 사이클 돌 때마다)
     fun setPeerInfo(peer: SignalServerInfo) {
-        Log.d("VideoChatRtcManager", "setPeerInfo: ${peer.signalServerHost}")
+        Log.w("VideoChatRtcManager", "setPeerInfo: ${peer.signalServerHost}")
         peerManager.setIceServer(peer)
         peerManager.addStreamToPeerConnection()
         socketManager.createSocket(peer.signalServerHost)
@@ -77,15 +86,18 @@ class VideoChatRtcManager private constructor(
 
     // 프래그먼트 트랜지션마다 호출 - 내려가는 프래그먼트의 서페이스뷰를 넣어준다.
     fun detachVideoTrackFromLocalSurface(surfaceView: SurfaceViewRenderer) {
+        Log.w("VideoChatRtcManager", "detachVideoTrackFromLocalSurface")
         peerManager.detachLocalTrackFromSurface(surfaceView)
     }
 
     fun detachVideoTrackFromRemoteSurface(surfaceView: SurfaceViewRenderer) {
+        Log.w("VideoChatRtcManager", "detachVideoTrackFromRemoteSurface: ")
         peerManager.stopRemotePreviewRendering(surfaceView)
     }
 
     // 통화 종료 시마다 호출 - 여러 케이스 있을텐데 통합해서 이건 다 불러주도록 합니다.
     private fun releaseSocket(doAfterRelease: (() -> Unit)? = null) {
+        Log.w("VideoChatRtcManager", "releaseSocket")
         Handler(Looper.getMainLooper()).post {
             isStart.set(false)
             isReleased.set(true)
@@ -101,6 +113,7 @@ class VideoChatRtcManager private constructor(
 
     // 액티비티 종료 시 호출
     fun disposePeer() {
+        Log.w("VideoChatRtcManager", "disposePeer")
         peerManager.apply {
             removeStreamFromPeerConnection()
             removeTrackFromStream()
@@ -111,6 +124,7 @@ class VideoChatRtcManager private constructor(
     }
 
     override fun onPeerCreate(desc: SessionDescription?) {
+        Log.w("VideoChatRtcManager", "onPeerCreate: $desc")
         socketManager.sendOfferAnswerToSocket(desc!!)
     }
 
@@ -120,17 +134,22 @@ class VideoChatRtcManager private constructor(
 
     override fun onIceCandidate(iceCandidate: IceCandidate?) {
         super.onIceCandidate(iceCandidate)
+        Log.w("VideoChatRtcManager", "onIceCandidate: $iceCandidate")
         iceCandidate?.let {
             socketManager.sendIceCandidateToSocket(it)
             peerManager.addIceCandidate(it)
-        } ?: kotlin.run {
-            onPeerError(isCritical = false, showMessage = false, message = "Ice candidate data is null")
+        } ?: run {
+            onPeerError(
+                isCritical = false,
+                showMessage = false,
+                message = "Ice candidate data is null"
+            )
         }
     }
 
     override fun onAddStream(mediaStream: MediaStream?) {
         super.onAddStream(mediaStream)
-        Log.d("webrtcTAG", "onAddStream")
+        Log.w("webrtcTAG", "onAddStream")
         audioManager.audioFocusDucking()
 
         if (callingRemoteView != null && mediaStream != null) {
@@ -138,14 +157,25 @@ class VideoChatRtcManager private constructor(
         }
     }
 
+    override fun onAddTrack(p0: RtpReceiver?, p1: Array<out MediaStream>?) {
+        super.onAddTrack(p0, p1)
+        Log.w("webrtcTAG", "onAddTrack, p0: $p0, p1: $p1")
+        audioManager.audioFocusDucking()
+
+        if (callingRemoteView != null && p1 != null) {
+            peerManager.startRemoteVideoCapture(callingRemoteView!!, p1.first())
+        }
+    }
+
     fun stopCallSignFromClient(stoppedAt: StopCallType) {
-        when(stoppedAt) {
+        Log.w("VideoChatRtcManager", "stopCallSignFromClient: $stoppedAt")
+        when (stoppedAt) {
             StopCallType.STOP_WAITING -> releaseSocket { hangUpSuccess(stoppedAt) }
             StopCallType.GO_TO_INTRO -> releaseSocket {
                 hangUpSuccess(stoppedAt)
             }
             StopCallType.QUIT_ACTIVITY -> releaseSocket {
-                Log.d("webrtcTAG", "stop at destroy activity")
+                Log.w("webrtcTAG", "stop at destroy activity")
             }
 //            else -> socketManager.sendHangUpEventToSocket(HANGUP, { hangUp(it)} ) { hangUpSuccess(stoppedAt) }
         }
@@ -154,7 +184,7 @@ class VideoChatRtcManager private constructor(
     private fun hangUp(data: JSONObject) = Unit
 
     private fun hangUpSuccess(stoppedAt: StopCallType) {
-        Log.d("webrtcTAG", "onHangUpSuccess")
+        Log.w("webrtcTAG", "onHangUpSuccess")
         val uiEvent = when (stoppedAt) {
             StopCallType.QUIT_ACTIVITY -> RtcUiEvent.FINISH
             StopCallType.GO_TO_INTRO -> RtcUiEvent.FINISH
@@ -170,15 +200,22 @@ class VideoChatRtcManager private constructor(
         if (shouldClosePeer) {
             iVideoChatViewModelListener.onError(ErrorHandleData(true, message ?: "", showMessage))
         }
-        Log.d("webrtcTAG", "message = $message, showMessage = $showMessage")
+        Log.w("webrtcTAG", "message = $message, showMessage = $showMessage")
     }
 
     override fun onSocketState(state: String, data: Array<Any>, onComplete: (() -> Unit)?) {
-        Log.d("webRTCTAG", "onSocketState $state $data")
+        Log.w("webRTCTAG", "onSocketState $state ${data.getOrNull(0)}")
         when (state) {
             "connect" -> onSocketConnected(data)
             "message" -> onSocketMessage(data)
-            "matched" -> data.forEach { onSocketMatched(gson.fromJson("$it", MatchModel::class.java)) }
+            "matched" -> data.forEach {
+                onSocketMatched(
+                    gson.fromJson(
+                        "$it",
+                        MatchModel::class.java
+                    )
+                )
+            }
             "waiting_status" -> data.forEach { waitingStatusReceived(JSONObject("$it")) }
             "terminated" -> onTerminated(data)
             "disconnect" -> onError(false, false, message = SERVER_DISCONNECT)
@@ -189,7 +226,7 @@ class VideoChatRtcManager private constructor(
     }
 
     private fun onSocketConnected(data: Array<Any>) {
-        Log.d("webrtcTAG", "onSocketConnected")
+        Log.w("webrtcTAG", "onSocketConnected")
         val userInfo = iVideoChatViewModelListener.getUserInfo()
         val authInfo = JSONObject().apply {
             put(TOKEN, userInfo.token)
@@ -206,22 +243,43 @@ class VideoChatRtcManager private constructor(
     }
 
     private fun onSocketMessage(message: Array<Any>) {
-        Log.d("webrtcTAG", "onSocketMessage = ${message[0]}")
+        Log.w("webrtcTAG", "onSocketMessage = ${message[0]}")
         try {
             val data = JSONObject(message[0].toString())
             when (data["type"]) {
-                OFFER -> onSocketOfferReceived(SessionDescription(SessionDescription.Type.OFFER, "${data[SDP]}"))
-                ANSWER -> onSocketAnswerReceived(SessionDescription(SessionDescription.Type.ANSWER, "${data[SDP]}"))
-                CANDIDATE -> onSocketIceCandidateReceived(IceCandidate(data[ID].toString(), data.getInt(LABEL), data[CANDIDATE].toString()))
-                else -> onError(shouldClosePeer = false, showMessage = false, message = "unsupported socket message")
+                OFFER -> onSocketOfferReceived(
+                    SessionDescription(
+                        SessionDescription.Type.OFFER,
+                        "${data[SDP]}"
+                    )
+                )
+                ANSWER -> onSocketAnswerReceived(
+                    SessionDescription(
+                        SessionDescription.Type.ANSWER,
+                        "${data[SDP]}"
+                    )
+                )
+                CANDIDATE -> onSocketIceCandidateReceived(
+                    IceCandidate(
+                        data[ID].toString(),
+                        data.getInt(LABEL),
+                        data[CANDIDATE].toString()
+                    )
+                )
+
+                else -> onError(
+                    shouldClosePeer = false,
+                    showMessage = false,
+                    message = "unsupported socket message"
+                )
             }
-        } catch (e: java.lang.Exception) {
-            e.printStackTrace()
+        } catch (e: Exception) {
+            Log.e("webrtcTAG", "onSocketMessage error = ${e.message}", e)
         }
     }
 
     private fun onSocketOfferReceived(description: SessionDescription) {
-        Log.d("webrtcTAG", "onOfferReceived")
+        Log.w("webrtcTAG", "onOfferReceived")
         peerManager.run {
             onRemoteSessionReceived(description)
             callAnswer()
@@ -229,20 +287,20 @@ class VideoChatRtcManager private constructor(
     }
 
     private fun onSocketAnswerReceived(description: SessionDescription) {
-        Log.d("webrtcTAG", "onSocketAnswerReceived")
+        Log.w("webrtcTAG", "onSocketAnswerReceived")
         peerManager.onRemoteSessionReceived(description)
     }
 
     private fun onSocketIceCandidateReceived(iceCandidate: IceCandidate) {
-        Log.d("webrtcTAG", "onSocketIceCandidateReceived")
+        Log.w("webrtcTAG", "onSocketIceCandidateReceived")
         peerManager.addIceCandidate(iceCandidate)
     }
 
     private fun onSocketMatched(data: MatchModel) {
         try {
-            Log.d("webrtcTAG", "onSocketMatched")
+            Log.w("webrtcTAG", "onSocketMatched")
             this.otherUserIdx = data.otherIdx
-            if(!isStart.get()) {
+            if (!isStart.get()) {
                 if (data.isOffer) createOffer()
                 else createAnswer()
 
@@ -256,13 +314,13 @@ class VideoChatRtcManager private constructor(
     }
 
     private fun createOffer() {
-        Log.d("webrtcTAG", "createOffer")
+        Log.w("webrtcTAG", "createOffer")
         peerManager.callOffer()
         socketManager.sendEventToSocket(CALL_STARTED)
     }
 
     private fun createAnswer() {
-        Log.d("webrtcTAG", "createAnswer")
+        Log.w("webrtcTAG", "createAnswer")
         peerManager.callAnswer()
         socketManager.sendEventToSocket(CALL_STARTED)
     }
@@ -272,6 +330,7 @@ class VideoChatRtcManager private constructor(
     }
 
     private fun onTerminated(data: Array<Any>) {
+        Log.w("webrtcTAG", "onTerminated")
         var terminateCase = HANGUP
         var message: String? = null
         try {
@@ -287,6 +346,7 @@ class VideoChatRtcManager private constructor(
     }
 
     private fun terminate(state: String, message: String? = null) {
+        Log.w("webrtcTAG", "terminate")
         when (state) {
             TIMEOUT, DISCONNECTION, HANGUP -> {
                 releaseSocket {
@@ -300,6 +360,7 @@ class VideoChatRtcManager private constructor(
     }
 
     fun changeCameraFacing(handler: CameraVideoCapturer.CameraSwitchHandler) {
+        Log.w("webrtcTAG", "changeCameraFacing")
         peerManager.changeCameraFacing(handler)
     }
 

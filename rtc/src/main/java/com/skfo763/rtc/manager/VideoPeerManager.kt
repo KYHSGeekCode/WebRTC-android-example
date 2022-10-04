@@ -1,6 +1,7 @@
 package com.skfo763.rtc.manager
 
 import android.content.Context
+import android.util.Log
 import com.skfo763.rtc.data.PEER_CREATE_ERROR
 import com.skfo763.rtc.data.VIDEO_TRACK_ID
 import com.skfo763.rtc.inobs.PeerConnectionObserver
@@ -40,6 +41,7 @@ class VideoPeerManager(
     }
 
     fun startCameraCapture() {
+        Log.w("VideoPeerManager", "Start Camera Capture")
         try {
             surfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().name, rootEglBase.eglBaseContext)
         } catch(e: Exception) {
@@ -54,37 +56,55 @@ class VideoPeerManager(
     }
 
     fun addTrackToStream() {
+        Log.w("VideoPeerManager", "Add Track to Stream")
         localStream.addTrack(localAudioTrack)
         localStream.addTrack(localVideoTrack)
     }
 
     fun addStreamToPeerConnection() {
-        peerConnection = buildPeerConnection()
-        peerConnection?.addStream(localStream) ?: run {
+        Log.w("PeerManager", "Add stream to peer connection")
+        val peerConnection = buildPeerConnection()
+        this.peerConnection = peerConnection
+        if(peerConnection == null) {
             observer.onPeerError(isCritical = true, showMessage = false, message = PEER_CREATE_ERROR)
+            return
         }
+        for (track in localStream.videoTracks) {
+            peerConnection.addTrack(track)
+        }
+        for (track in localStream.audioTracks) {
+            peerConnection.addTrack(track)
+        }
+//        peerConnection?.addStream(localStream) ?: run {
+//            observer.
+//        }
     }
 
     fun attachLocalTrackToSurface(localSurfaceView: SurfaceViewRenderer) {
+        Log.w("PeerManager", "Attach local track to surface")
         localVideoTrack.addSink(localSurfaceView)
     }
 
     fun detachLocalTrackFromSurface(surfaceView: SurfaceViewRenderer) {
+        Log.w("PeerManager", "Detach local track from surface")
         localVideoTrack.removeSink(surfaceView)
     }
 
     fun removeStreamFromPeerConnection() {
+        Log.w("PeerManager", "Remove stream from peer connection")
         peerConnection?.removeStream(localStream) ?: run {
             observer.onPeerError(isCritical = false, showMessage = false, message = PEER_CREATE_ERROR)
         }
     }
 
     fun removeTrackFromStream() {
+        Log.w("PeerManager", "Remove track from stream")
         localStream.removeTrack(localAudioTrack)
         localStream.removeTrack(localVideoTrack)
     }
 
     fun stopCameraCapture() {
+        Log.w("PeerManager", "Stop camera capture")
         videoCaptureManager.stopVideoCapture {
             observer.onPeerError(isCritical = true, showMessage = false, message = PEER_CREATE_ERROR)
         }
@@ -96,6 +116,7 @@ class VideoPeerManager(
     }
 
     fun startRemoteVideoCapture(remoteSurfaceView: SurfaceViewRenderer, mediaStream: MediaStream) {
+        Log.w("VideoPeerManager", "startRemoteVideoCapture")
         mediaStream.videoTracks.getOrNull(0)?.apply {
             remoteSurfaceView.setMirror(true)
             remoteVideoTrack = this

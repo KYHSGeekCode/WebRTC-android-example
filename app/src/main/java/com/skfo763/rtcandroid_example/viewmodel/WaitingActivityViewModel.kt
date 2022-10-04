@@ -22,8 +22,8 @@ class WaitingActivityViewModel(val useCase: WaitingActivityUseCase) : ViewModel(
         }
     }
 
-    fun getToken(isMan: Boolean): String {
-        return TokenManager.getToken(isMan)
+    fun getToken(isTeacher: Boolean): String {
+        return TokenManager.getToken(isTeacher)
     }
 
     fun startCall() {

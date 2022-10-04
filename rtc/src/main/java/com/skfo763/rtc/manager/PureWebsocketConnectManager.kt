@@ -4,6 +4,7 @@ import android.util.Log
 import okhttp3.*
 import org.json.JSONObject
 import java.security.cert.X509Certificate
+import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
@@ -24,6 +25,7 @@ open class PureWebsocketConnectManager(private val onSocketListener: OnSocketLis
 
     // 로컬 테스트 시 ssl 인증 우회하기 위해 필요합니다. 자체 ssl 인증 서버가 있으면 안써도 됩니다.
     private fun getOkHttpClient(): OkHttpClient {
+        Log.w("PureWebsocketConnect", "getOkHttpClient")
         val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
             override fun checkClientTrusted(p0: Array<out X509Certificate>?, p1: String?) = Unit
             override fun checkServerTrusted(p0: Array<out X509Certificate>?, p1: String?) = Unit
@@ -41,6 +43,7 @@ open class PureWebsocketConnectManager(private val onSocketListener: OnSocketLis
 
 
     fun createSocket(host: String) {
+        Log.w("PureWebsocketConnect", "createSocket")
         if (socket != null) return
         val client = OkHttpClient()
 
@@ -54,19 +57,24 @@ open class PureWebsocketConnectManager(private val onSocketListener: OnSocketLis
 
     override fun onOpen(webSocket: WebSocket, response: Response) {
         super.onOpen(webSocket, response)
+        Log.w("PureWebsocketConnect", "onOpen")
         retryConnectionCount.set(0)
         onSocketListener.onSocketState("connect", arrayOf())
     }
 
     override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
         super.onClosing(webSocket, code, reason)
+        Log.w("PureWebsocketConnect", "onClosing")
         onSocketListener.onSocketState("disconnect", arrayOf())
     }
 
     override fun onMessage(webSocket: WebSocket, text: String) {
         super.onMessage(webSocket, text)
-        Log.d("socketmgr", "onMessage: $text")
-        onSocketListener.onSocketState("message", arrayOf(text))
+        Log.w("socketmgr", "onMessage: $text")
+        val json = JSONObject(text)
+        val event = json.getString("event")
+        val data = json.getString("content")
+        onSocketListener.onSocketState(event, arrayOf(data))
     }
 
     // reconnect
@@ -80,7 +88,7 @@ open class PureWebsocketConnectManager(private val onSocketListener: OnSocketLis
         } else if (connectCount % 5 == 0) {
             onSocketListener.onSocketState("connectRetryError", emptyArray())
         }
-        Log.d("webrtcTAG", "socket retry event, retry count = $connectCount")
+        Log.w("webrtcTAG", "socket retry event, retry count = $connectCount")
         retryConnectionCount.set(connectCount + 1)
     }
 
@@ -90,15 +98,16 @@ open class PureWebsocketConnectManager(private val onSocketListener: OnSocketLis
 //    }
 
     fun disconnectSocket() {
+        Log.w("PureWebsocketConnect", "disconnectSocket")
         socket?.close(1000, "disconnect") // TODO: Fix args
         socket = null
     }
 
     fun emit(event: String, data: Any) {
-        Log.d("socketmgr", "emit: $event, $data, socket: $socket")
+        Log.w("socketmgr", "emit: $event, $data, socket: $socket")
         socket?.send(
             JSONObject().apply {
-                put("from", "android")
+                put("from", UUID.randomUUID().toString())
                 put("event", event)
                 put("content", data)
             }.toString()

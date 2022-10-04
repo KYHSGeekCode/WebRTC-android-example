@@ -46,11 +46,12 @@ open class PureRTCSocketManager(private val onSocketListener: OnSocketListener) 
 //    }
 
     override fun onOpen(webSocket: WebSocket, response: Response) {
+        Log.w("PureRTCSocketManager", "onOpen")
         super.onOpen(webSocket, response)
     }
 
     fun socketJoin(data: JSONObject, ack: (String) -> Unit) {
-        Log.d("socketJoin", data.toString())
+        Log.w("socketJoin", data.toString())
         emit(EMIT_JOIN, data)
 
         // FIXME
@@ -75,6 +76,7 @@ open class PureRTCSocketManager(private val onSocketListener: OnSocketListener) 
     }
 
     fun sendOfferAnswerToSocket(sessionDescription: SessionDescription) {
+        Log.w("sendOfferAnswerToSocket", sessionDescription.description)
         try {
             val jsonSessionDescription = gson.toJson(sessionDescription)
             val sendData = JSONObject()
@@ -103,6 +105,7 @@ open class PureRTCSocketManager(private val onSocketListener: OnSocketListener) 
     }
 
     fun sendIceCandidateToSocket(iceCandidate: IceCandidate) {
+        Log.w("sendIceCandidateToSocke", iceCandidate.sdp)
         try {
             val sendData = JSONObject().apply {
                 put(TYPE, CANDIDATE)
@@ -142,11 +145,11 @@ open class PureRTCSocketManager(private val onSocketListener: OnSocketListener) 
 //    }
 
     fun sendEventToSocket(event: String) {
+        Log.w("sendEventToSocket", event)
         emit(event, "")
     }
 
     fun socketError(message: String) {
-
+        Log.w("socketError", message)
     }
-
 }

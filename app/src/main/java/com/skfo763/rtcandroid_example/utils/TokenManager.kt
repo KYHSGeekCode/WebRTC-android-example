@@ -6,11 +6,11 @@ class TokenManager {
         const val DEFAULT_PASSWORD = "123456"
 
         @JvmStatic
-        fun getToken(isMan: Boolean): String {
-            return if (isMan) {
-                "man"
+        fun getToken(isTeacher: Boolean): String {
+            return if (isTeacher) {
+                "teacher"
             } else {
-                "woman"
+                "student"
             }
         }
     }
