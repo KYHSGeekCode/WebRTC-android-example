@@ -164,6 +164,8 @@ class VideoChatRtcManager private constructor(
 
         if (callingRemoteView != null && p1 != null) {
             peerManager.startRemoteVideoCapture(callingRemoteView!!, p1.first())
+        } else {
+            Log.w("webrtcTAG", "onAddTrack, p0: $p0, p1: $p1, callingRemoteView: $callingRemoteView")
         }
     }
 
@@ -177,7 +179,10 @@ class VideoChatRtcManager private constructor(
             StopCallType.QUIT_ACTIVITY -> releaseSocket {
                 Log.w("webrtcTAG", "stop at destroy activity")
             }
-//            else -> socketManager.sendHangUpEventToSocket(HANGUP, { hangUp(it)} ) { hangUpSuccess(stoppedAt) }
+//            else -> {
+//                // socketManager.sendHangUpEventToSocket(HANGUP, { hangUp(it)} ) { hangUpSuccess(stoppedAt) }
+//                Log.w("webrtcTAG", "stop at destroy activity")
+//            }
         }
     }
 
