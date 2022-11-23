@@ -149,3 +149,20 @@ protected fun buildPeerConnection(): PeerConnection? {
 17. 로컬 카메라 촬영 종료
 18. localVideoSource 사용 종료
 19. videoCaptureManager null로
+
+# addStream 을 나중에
+# DataChannel 써서 테스트해보기
+# IceCandidates가 비동기적으로 생성된다.
+# 일찍부터 IceCandidate를 들어서 빠짐없이 듣는다.
+
+# A가 offer -> Setlocaldescription 잘 하는지
+# A가 IceCandidate를 일찍부터 잘 listen하는지
+# A에서 나온 offer / iceCandidate가 B에 잘 들어가는지
+# B한테 가서 일찍 들어온 IceCandidate가 전부 다 적용이 되는지
+# B의 Answer -> A로 잘 가는지
+# A가 그것을 잘 적용하는지
+
+# 아무래도 안 된다 -> 채널을 의심하여 DataChannel을 해본다.
+
+# TURN 서버 만들어야 함. : UDP 릴레이 서버 (10%정도 로드 생김)
+# STUN 서버의 역할 : NAT 를 통과하는 데 필요한 정보를 얻는다.

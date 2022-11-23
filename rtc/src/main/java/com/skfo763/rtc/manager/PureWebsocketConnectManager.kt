@@ -104,10 +104,11 @@ open class PureWebsocketConnectManager(private val onSocketListener: OnSocketLis
     }
 
     fun emit(event: String, data: Any) {
-        Log.w("socketmgr", "emit: $event, $data, socket: $socket")
+        Log.w("socketmgr", "emit: $event, $data, socket: $socket, selfId: $selfId")
         socket?.send(
             JSONObject().apply {
-                put("from", UUID.randomUUID().toString())
+                put("traceId", UUID.randomUUID().toString())
+                put("from", selfId)
                 put("event", event)
                 put("content", data)
             }.toString()
@@ -123,3 +124,4 @@ open class PureWebsocketConnectManager(private val onSocketListener: OnSocketLis
 //        }
 //    }
 }
+val selfId = UUID.randomUUID().toString()
